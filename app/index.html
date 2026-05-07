@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>BiN32 アプリ</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>\
+    .upbar a { text-decoration: none; }
+    .upbar button { margin: .3rem; padding: .5rem 1rem; }
+    #iframe-wrapper { margin-top: 1rem; display: none; }
+    #iframe-wrapper iframe {
+      width: 100%;
+      height: 500px;
+      border: none;
+    }
+  </style>
+<link rel="manifest" href="/manifest.json">
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js");
+}
+</script>
+<meta http-equiv="Content-Security-Policy"
+  content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline';
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' data:;
+    frame-src 'self' blob:;
+    worker-src 'self';
+    manifest-src 'self';
+    connect-src 'self';
+    object-src 'none';
+    base-uri 'self';
+  ">
+<meta name="description" content="めちゃ軽いWebアプリ">
+<meta name="viewport" content="width=device-width">
+<meta property="og:site_name" content="BiN32.com APP">
+<meta property="og:title" content="BiN32.com APP">
+<meta property="og:description" content="めちゃ軽いWebアプリ">
+<meta property="og:image" content="/favicon.webp">
+<meta property="og:type" content="website">
+<meta property="twitter:card" content="summary_large_image">
+<meta property="twitter:image" content="/favicon.webp">
+<meta name="apple-mobile-web-app-title" content="BiN32.com APP">
+<link rel="icon" href="/favicon.webp" sizes="64x64">
+<link rel="apple-touch-icon" href="/favicon.webp" sizes="192x192">
+<link rel="android-chrome-192x192" href="/favicon.webp" sizes="192x192">
+</head>
+<body>
+  <center>
+    <div class="ren-box">
+      <div class="upbar">
+        <a href="pwgen" class="ajax-link"><button><h2>パスワードジェネレーター</h2></button></a>
+        <a href="uidgen" class="ajax-link"><button><h2>UIDジェネレーター</h2></button></a>
+        <a href="qrgen" class="ajax-link"><button><h2>QRジェネレーター</h2></button></a>
+        <a href="pngedit" class="ajax-link"><button><h2>PNG簡易編集</h2></button></a>
+      </div>
+      <div id="iframe-wrapper"></div>
+      <h6><a href="https://github.com/AiryBubble/BiN32/blob/main/LICENSE">MIT License.</a>, (C) AiryBubble.</h6>
+    </div>
+  </center>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const wrapper = document.getElementById('iframe-wrapper');
+      document.querySelectorAll('a.ajax-link').forEach(link => {
+        link.addEventListener('click', e => {
+          e.preventDefault();
+          const url = link.getAttribute('href');
+          wrapper.innerHTML = '';
+          const iframe = document.createElement('iframe');
+          iframe.src = url;
+          iframe.loading = 'lazy';
+          wrapper.appendChild(iframe);
+          wrapper.style.display = 'block';
+        });
+      });
+    });
+  </script>
+</html>
