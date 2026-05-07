@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+  <title>UIDジェネレーター</title>
+<style>@font-face{font-family:"Noto Sans JP";src:local("Noto Sans JP Regular"),local("NotoSansJP-Regular"),url(/NotoSansJP-Regular.woff2) format("woff2");font-style:normal;font-display:swap}body{font-family:"Noto Sans JP";}*{ color:#240786 }button{font-size:16px;padding:10px 20px;background:#57e;border:none;border-radius:4px;cursor:pointer}</style>
+</head>
+<body>
+  <h1>生成されたUID: <span id="uid"></span></h1>
+  <button onclick="createUID()">生成</button>
+<script>function generateUID(){return"xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,function(c){var r=crypto.getRandomValues(new Uint8Array(1))[0]&15;var v=c=='x'?r:(r&3|8);return v.toString(16)})}function createUID(){document.getElementById("uid").textContent=generateUID()}</script>
+</body>
+</html>
