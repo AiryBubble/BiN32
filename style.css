@@ -92,8 +92,40 @@ button:active {
 .upbar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
+    gap: 15px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    padding: 10px;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+}
+
+.upbar::-webkit-scrollbar {
+    height: 8px;
+}
+
+.upbar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.upbar::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.upbar::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.upbar > * {
+    flex-shrink: 0;
+}
+
+.upbar button {
+    white-space: nowrap;
+    padding: 10px 20px;
 }
 
 @media (max-width: 768px) {
