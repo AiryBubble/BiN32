@@ -1,8 +1,8 @@
 @font-face {
-    font-family: "Noto Sans JP";
-    src: local("Noto Sans JP Regular"),
-         local("NotoSansJP-Regular"),
-         url(/NotoSansJP-Regular.woff2) format("woff2");
+    font-family: "BIZ UDGothic";
+    src: local("BIZ UDGothic Regular"),
+         local("BIZUDGothic-Regular"),
+         url(/BIZUDGothic-Regular.woff2) format("woff2");
     font-style: normal;
     font-display: swap;
 }
