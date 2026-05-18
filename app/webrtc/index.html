@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<metacharset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<title>WebRTC判定</title>
+<style>@font-face{font-family:"BIZ UDGothic";src:local("BIZ UDGothic Regular"),local("BIZUDGothic-Regular"),url(/BIZUDGothic-Regular.woff2) format("woff2");font-style:normal;font-display:swap}body{font-family:"BIZ UDGothic";padding:20px}.controls{margin-bottom:12px}canvas{display:block;border:1px solid #ccc;margin-top:10px}input[type="range"]{width:300px}button{font-size:16px;padding:10px 20px;background:#57e;border:none;border-radius:4px;cursor:pointer}*{color:#240786}#result{margin-top:20px;padding:15px;border-radius:4px;font-weight:bold}.ok{background:#d4ffd4;border-left:4px solid #2c6e2c}.ng{background:#ffe0e0;border-left:4px solid #c00}.partial{background:#fff3cd;border-left:4px solid #ffc107}.info-text{font-size:13px;margin-top:8px}</style>
+</head>
+<body>
+<div class="controls">
+<button id="checkBtn">判定する</button>
+</div>
+<div id="result"></div>
+<div id="detail" class="info-text"></div>
+<script>(function(){const e=document.getElementById("result"),t=document.getElementById("detail");function n(){const r="undefined"!=typeof window.RTCPeerConnection||"undefined"!=typeof window.webkitRTCPeerConnection||"undefined"!=typeof window.mozRTCPeerConnection,o=!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)||!!(navigator.getUserMedia||navigator.webkitGetUserMedia||navigator.mozGetUserMedia),c=!!(navigator.mediaDevices&&navigator.mediaDevices.getDisplayMedia);let a,s,i;r&&o?(a="WebRTC 使用可能",s="ok",i="このブラウザはWebRTCに対応しており、P2P通信とカメラ/マイクが利用できます。"):r&&!o?(a="部分対応 (P2Pのみ)",s="partial",i="RTCPeerConnectionは使えますが、カメラ/マイク(getUserMedia)が利用できません。"):!r&&o?(a="部分対応 (メディアのみ)",s="partial",i="カメラ/マイクは使えますが、P2P接続(RTCPeerConnection)が利用できません。"):(a="WebRTC 未対応",s="ng",i="このブラウザはWebRTCに対応していません。使用しているブラウザの最新版をお試しするかWebRTCの設定をご確認ください。"),e.className=s,e.innerHTML=`<strong>${a}</strong><br>${i}`,t.innerHTML=`<strong>詳細:</strong><br>RTCPeerConnection: ${r?"対応":"未対応"}<br>getUserMedia (カメラ/マイク): ${o?"対応":"未対応"}<br>getDisplayMedia (画面共有): ${c?"対応":"未対応"}<br>${!r&&!o?"HTTPS環境で試してください (localhostは例外)":""}`}document.getElementById("checkBtn").addEventListener("click",n),n()})();</script>
+</body>
+</html>
