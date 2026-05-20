@@ -1,7 +1,7 @@
 const CACHE_NAME = "static-cache-v1";
 const FILES_TO_CACHE = [
   "/style.css",
-  "/NotoSansJP-Regular.woff2",
+  "/BIZUDGothic-Regular.woff2",
   "/favicon.webp",
   "/app/index.html",
   "/app/pwgen/index.html",
@@ -9,7 +9,8 @@ const FILES_TO_CACHE = [
   "/app/qrgen/qrcode.js",
   "/app/qrgen/jquery.js",
   "/app/uidgen/index.html",
-  "/app/hue/index.html"
+  "/app/hue/index.html",
+  "/app/webrtc/index.html"
 ];
 
 self.addEventListener("install", (event) => {
