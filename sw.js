@@ -1,7 +1,7 @@
 const CACHE_NAME = "static-cache-v1";
 const FILES_TO_CACHE = [
   "/style.css",
-  "/BIZUDGothic-Regular.woff2",
+  "/BIZUDPGothic-Regular.woff2",
   "/favicon.webp",
   "/app/index.html",
   "/app/pwgen/index.html",
