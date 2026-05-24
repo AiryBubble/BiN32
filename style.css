@@ -1,8 +1,8 @@
 @font-face {
-    font-family: "BIZ UDGothic";
-    src: local("BIZ UDGothic Regular"),
-         local("BIZUDGothic-Regular"),
-         url(/BIZUDGothic-Regular.woff2) format("woff2");
+    font-family: "BIZ UDPGothic";
+    src: local("BIZ UDPGothic Regular"),
+         local("BIZUDPGothic-Regular"),
+         url(/BIZUDPGothic-Regular.woff2) format("woff2");
     font-style: normal;
     font-display: swap;
 }
@@ -13,7 +13,7 @@
 
 body {
     background: linear-gradient(135deg, #0a7ecc 0%, #8fcbff 50%, #e1f0ff 100%);
-    font-family: "Noto Sans JP", "Noto Sans CJK JP";
+    font-family: "BIZ UDPGothic", "BIZ UDPゴシック";
     background-attachment: fixed;
     margin: 0;
     padding: 20px;
