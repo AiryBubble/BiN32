@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webhook削除</title>
+    <style>@font-face{font-family:"BIZ UDPGothic";src:local("BIZ UDPGothic Regular"),local("BIZUDPGothic-Regular"),url(/BIZUDPGothic-Regular.woff2) format("woff2");font-style:normal;font-display:swap}body{font-family:"BIZ UDPGothic";padding:20px;max-width:600px;margin:0 auto}*{color:#240786}h1{font-size:22px;margin-bottom:6px}.subtitle{font-size:14px;color:#666;margin-top:-4px;margin-bottom:20px}.controls{margin-bottom:12px}.controls label{display:block;font-weight:bold;margin-bottom:4px}.controls input[type="url"]{width:100%;padding:10px 12px;font-size:14px;font-family:"BIZ UDPGothic";border:2px solid #ccc;border-radius:4px;box-sizing:border-box;background:#fff}.controls input[type="url"]:focus{border-color:#57e;outline:none}.controls .hint{font-size:12px;color:#888;margin-top:3px}.btn-group{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}button{font-size:16px;padding:10px 20px;background:#57e;border:none;border-radius:4px;cursor:pointer;color:#fff;font-family:"BIZ UDPGothic";font-weight:bold;transition:opacity 0.2s}button:hover:not(:disabled){opacity:0.85}button:disabled{opacity:0.5;cursor:not-allowed}.btn-danger{background:#e74c3c}.btn-secondary{background:#95a5a6}.btn-danger:hover:not(:disabled){background:#c0392b}#result{margin-top:20px;padding:15px;border-radius:4px;font-weight:bold;display:none}#result.visible{display:block}.ok{background:#d4ffd4;border-left:4px solid #2c6e2c}.ng{background:#ffe0e0;border-left:4px solid #c00}.partial{background:#fff3cd;border-left:4px solid #ffc107}.info-text{font-size:13px;margin-top:8px;color:#555}.webhook-preview{background:#f0f0f5;padding:10px 14px;border-radius:4px;margin-top:10px;font-size:13px;word-break:break-all;display:none}.webhook-preview.visible{display:block}.webhook-preview .label{font-weight:bold;font-size:12px;color:#888}.footer{margin-top:30px;font-size:12px;color:#999;border-top:1px solid #ddd;padding-top:15px}.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.2);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:6px}@keyframes spin{to{transform:rotate(360deg)}}.warning-box{background:#fff3cd;border-left:4px solid #ffc107;padding:10px 14px;border-radius:4px;margin-bottom:16px;font-size:14px}.warning-box strong{color:#856404}@media(max-width:480px){body{padding:12px}.btn-group{flex-direction:column}button{width:100%}input[type="range"]{width:100%}}</style>
+</head>
+<body>
+    <p class="subtitle">Discord Webhookを完全に削除します</p>
+
+    <div class="warning-box">
+        この操作は<strong>元に戻せません</strong>。削除するとWebhookは永久に失われます。
+    </div>
+
+    <div class="controls">
+        <label for="webhookInput">Webhook URL</label>
+        <input type="url" id="webhookInput" placeholder="https://discord.com/api/webhooks/..." autocomplete="url">
+        <div class="hint">DiscordのWebhook URLを貼り付けてください</div>
+    </div>
+
+    <div class="webhook-preview" id="webhookPreview">
+        <div class="label">削除対象</div>
+        <div id="previewUrl"></div>
+    </div>
+
+    <div class="btn-group">
+        <button class="btn-secondary" id="checkBtn">確認</button>
+        <button class="btn-danger" id="deleteBtn" disabled>削除</button>
+    </div>
+
+    <div id="result"></div>
+    <div class="info-text">※すべての処理はブラウザ上で完結し、サーバーにデータは送信されません</div>
+
+    <div class="footer">
+        <span>WebhookはDiscordサーバー側で即座に削除されます</span>
+    </div>
+
+    <script>
+        (function() {
+            const webhookInput = document.getElementById('webhookInput');
+            const preview = document.getElementById('webhookPreview');
+            const previewUrl = document.getElementById('previewUrl');
+            const checkBtn = document.getElementById('checkBtn');
+            const deleteBtn = document.getElementById('deleteBtn');
+            const resultDiv = document.getElementById('result');
+
+            let currentWebhookUrl = '';
+            let isDeleting = false;
+
+            function isValidWebhookUrl(url) {
+                if (!url || typeof url !== 'string') return false;
+                const trimmed = url.trim();
+                const pattern = /^https:\/\/discord\.com\/api\/webhooks\/[0-9]+\/[a-zA-Z0-9_-]+$/;
+                return pattern.test(trimmed);
+            }
+
+            function normalizeUrl(url) {
+                return url.trim();
+            }
+
+            function showPreview(url) {
+                previewUrl.textContent = url;
+                preview.classList.add('visible');
+            }
+
+            function hidePreview() {
+                preview.classList.remove('visible');
+            }
+
+            function showResult(message, type = 'info') {
+                resultDiv.textContent = message;
+                resultDiv.className = 'visible ' + type;
+            }
+
+            function hideResult() {
+                resultDiv.className = '';
+                resultDiv.textContent = '';
+            }
+
+            function updateButtons(valid) {
+                deleteBtn.disabled = !valid || isDeleting;
+            }
+
+            function handleCheck() {
+                hideResult();
+                const raw = webhookInput.value;
+                const url = normalizeUrl(raw);
+
+                if (!url) {
+                    showResult('Webhook URLを入力してください', 'partial');
+                    hidePreview();
+                    updateButtons(false);
+                    return;
+                }
+
+                if (!isValidWebhookUrl(url)) {
+                    showResult('有効なWebhookではありません', 'ng');
+                    hidePreview();
+                    updateButtons(false);
+                    return;
+                }
+
+                currentWebhookUrl = url;
+                showPreview(url);
+                showResult('有効なWebhookです。削除を実行できます。', 'ok');
+                updateButtons(true);
+            }
+
+            async function handleDelete() {
+                if (isDeleting) return;
+                if (!currentWebhookUrl || !isValidWebhookUrl(currentWebhookUrl)) {
+                    showResult('無効なWebhookです。先に「確認」してください。', 'ng');
+                    return;
+                }
+
+                const confirmed = confirm(
+                    '本当にこのWebhookを削除しますか？\n\n' +
+                    currentWebhookUrl + '\n\n' +
+                    'この操作は元に戻せません！'
+                );
+                if (!confirmed) return;
+
+                isDeleting = true;
+                deleteBtn.disabled = true;
+                deleteBtn.innerHTML = '<span class="spinner"></span>削除中...';
+                checkBtn.disabled = true;
+                hideResult();
+
+                try {
+                    const response = await fetch(currentWebhookUrl, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+
+                    if (response.status === 204) {
+                        showResult('Webhookが正常に削除されました！', 'ok');
+                        webhookInput.value = '';
+                        currentWebhookUrl = '';
+                        hidePreview();
+                        updateButtons(false);
+                    } else if (response.status === 404) {
+                        showResult('Webhookが見つかりません。すでに削除されているか、URLが間違っています。', 'ng');
+                        currentWebhookUrl = '';
+                        hidePreview();
+                        updateButtons(false);
+                    } else {
+                        const text = await response.text();
+                        showResult('削除に失敗しました (HTTP ' + response.status + '): ' + (text || '理由不明'), 'ng');
+                    }
+                } catch (error) {
+                    showResult('ネットワークエラー: ' + (error.message || '不明なエラー'), 'ng');
+                } finally {
+                    isDeleting = false;
+                    deleteBtn.innerHTML = '削除';
+                    checkBtn.disabled = false;
+                    const currentVal = webhookInput.value.trim();
+                    if (currentVal && isValidWebhookUrl(currentVal)) {
+                        updateButtons(true);
+                    } else {
+                        updateButtons(false);
+                    }
+                }
+            }
+
+            webhookInput.addEventListener('input', function() {
+                if (this.value.trim() !== currentWebhookUrl) {
+                    hideResult();
+                    hidePreview();
+                    currentWebhookUrl = '';
+                    updateButtons(false);
+                }
+            });
+
+            webhookInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleCheck();
+                }
+            });
+
+            checkBtn.addEventListener('click', handleCheck);
+            deleteBtn.addEventListener('click', handleDelete);
+
+            updateButtons(false);
+            hideResult();
+            hidePreview();
+        })();
+    </script>
+</body>
+</html>
