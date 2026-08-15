@@ -10,7 +10,9 @@ const FILES_TO_CACHE = [
   "/app/qrgen/jquery.js",
   "/app/uidgen/index.html",
   "/app/hue/index.html",
-  "/app/webrtc/index.html"
+  "/app/webrtc/index.html",
+  "/app/hookdel/index.html",
+  "/app/twmr/index.html"
 ];
 
 self.addEventListener("install", (event) => {
