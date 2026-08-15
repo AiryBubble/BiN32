@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+      @font-face {
+        font-family: "BIZ UDPGothic";
+        src: local("BIZ UDPGothic Regular"), local("BIZUDPGothic-Regular"), url(/BIZUDPGothic-Regular.woff2) format("woff2");
+        font-style: normal;
+        font-display: swap
+      }
+
+      body {
+        font-family: "BIZ UDPGothic";
+        padding: 2rem 1.5rem;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+        margin: 0;
+      }
+
+      #qrcode {
+        margin-top: 10px;
+      }
+
+      button {
+        padding: 10px 20px;
+        background-color: #57e;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        color: #fff;
+        font-family: "BIZ UDPGothic";
+        font-size: 0.95rem;
+        transition: opacity 0.15s;
+      }
+
+      button:hover {
+        opacity: 0.85;
+      }
+
+      button.secondary {
+        background-color: #d0d7e6;
+        color: #240786;
+      }
+
+      button.success {
+        background-color: #2a9d6e;
+        color: #fff;
+      }
+
+      button.danger {
+        background-color: #b91c1c;
+        color: #fff;
+      }
+
+      * {
+        color: #240786;
+      }
+
+      h1 {
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .subtitle {
+        color: #555;
+        font-size: 0.95rem;
+        margin-bottom: 1.75rem;
+        border-left: 4px solid #57e;
+        padding-left: 1rem;
+      }
+
+      .badge {
+        background: #e8ecf9;
+        color: #240786;
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 0.2rem 0.8rem;
+        border-radius: 20px;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1rem;
+        align-items: center;
+        margin-bottom: 1.25rem;
+      }
+
+      .textarea-wrapper {
+        margin: 0.5rem 0;
+      }
+
+      textarea {
+        width: 100%;
+        padding: 1.2rem;
+        font-family: "BIZ UDPGothic", monospace;
+        font-size: 0.95rem;
+        line-height: 1.7;
+        border: 1px solid #d0d7e6;
+        border-radius: 8px;
+        background: #fcfdff;
+        resize: vertical;
+        color: #240786;
+        tab-size: 4;
+        box-sizing: border-box;
+      }
+
+      textarea:focus {
+        outline: none;
+        border-color: #57e;
+        box-shadow: 0 0 0 3px rgba(85, 119, 238, 0.15);
+      }
+
+      textarea[readonly] {
+        background: #f5f7fc;
+      }
+
+      .stats-row {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        margin: 0.5rem 0 1rem;
+        font-size: 0.85rem;
+        color: #555;
+        gap: 0.5rem;
+      }
+
+      .stats-row span {
+        background: #f0f2f8;
+        padding: 0.2rem 0.9rem;
+        border-radius: 30px;
+      }
+
+      .stats-row .count {
+        background: #e8ecf9;
+        font-weight: 500;
+      }
+
+      .result-area {
+        margin-top: 1.5rem;
+        border-top: 1px solid #e0e4ee;
+        padding-top: 1.5rem;
+      }
+
+      .result-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .result-header label {
+        font-weight: 500;
+        font-size: 0.95rem;
+      }
+
+      .copy-indicator {
+        background: #d1fae5;
+        color: #065f46;
+        padding: 0.15rem 0.9rem;
+        border-radius: 40px;
+        font-size: 0.75rem;
+        opacity: 0;
+        transition: 0.15s;
+      }
+
+      .copy-indicator.show {
+        opacity: 1;
+      }
+
+      .detection-section {
+        margin-top: 1.25rem;
+        background: #f5f7fc;
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        border: 1px solid #e0e4ee;
+      }
+
+      .detection-title {
+        font-weight: 600;
+        font-size: 0.95rem;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .detection-title .badge-count {
+        background: #240786;
+        color: #fff;
+        font-size: 0.7rem;
+        padding: 0.1rem 0.7rem;
+        border-radius: 30px;
+        font-weight: 500;
+      }
+
+      .detection-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 0.5rem 1rem;
+      }
+
+      .detection-item {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.85rem;
+        padding: 0.25rem 0.5rem;
+        background: #fff;
+        border-radius: 6px;
+        border: 1px solid #e8ecf9;
+        font-family: "BIZ UDPGothic", monospace;
+      }
+
+      .detection-item .char-preview {
+        background: #f0f2f8;
+        padding: 0 0.5rem;
+        border-radius: 4px;
+        min-width: 28px;
+        text-align: center;
+        font-weight: 500;
+      }
+
+      .detection-item .char-code {
+        color: #777;
+        font-size: 0.7rem;
+      }
+
+      .detection-item .char-count {
+        margin-left: auto;
+        background: #e8ecf9;
+        padding: 0 0.6rem;
+        border-radius: 30px;
+        font-weight: 600;
+        font-size: 0.75rem;
+        color: #240786;
+      }
+
+      .detection-empty {
+        color: #888;
+        font-size: 0.9rem;
+        padding: 0.5rem 0;
+      }
+
+      .footer {
+        margin-top: 1.2rem;
+        font-size: 0.8rem;
+        color: #888;
+        text-align: right;
+        border-top: 1px solid #e8ecf9;
+        padding-top: 1rem;
+      }
+
+      .inline-code {
+        background: #f0f2f8;
+        padding: 0.1rem 0.4rem;
+        border-radius: 4px;
+        font-family: "BIZ UDPGothic", monospace;
+        font-size: 0.85em;
+      }
+
+      .text-muted {
+        color: #888;
+      }
+
+      @media (max-width: 600px) {
+        body {
+          padding: 1rem;
+        }
+
+        .container {
+          padding: 1.25rem;
+        }
+
+        textarea {
+          height: 180px;
+        }
+
+        .toolbar {
+          gap: 0.5rem;
+        }
+
+        .detection-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <div class="subtitle"> 不可視文字を消去 <br>
+      </div>
+      <div class="toolbar">
+        <button id="cleanBtn">除去を実行</button>
+        <button class="secondary" id="clearBtn">クリア</button>
+        <span style="flex:1; min-width: 20px;"></span>
+        <span style="font-size:0.85rem; color:#555;">
+          <span id="charCount">0</span> 文字 </span>
+      </div>
+      <div class="textarea-wrapper">
+        <textarea id="inputArea" placeholder="ここに文章やコードを貼り付けてください ..."></textarea>
+      </div>
+      <div class="stats-row">
+        <span>削除対象:制御文字(可視スペースやタブ、改行などは除く)/ゼロ幅文字/特殊不可視</span>
+        <span class="count" id="removedCount">削除: 0</span>
+      </div>
+      <div class="detection-section" id="detectionSection">
+        <div class="detection-title"> 検出された不可視文字 <span class="badge-count" id="detectTotalCount">0 種類</span>
+        </div>
+        <div id="detectionList">
+          <div class="detection-empty">まだ実行されていません。「除去を実行」で結果が表示されます。</div>
+        </div>
+      </div>
+      <div class="result-area">
+        <div class="result-header">
+          <label for="outputArea">クリーンな結果</label>
+          <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
+            <button class="success" id="copyBtn" style="padding: 0.3rem 1rem; font-size:0.8rem;">コピー</button>
+            <span class="copy-indicator" id="copyIndicator">コピーしました</span>
+          </div>
+        </div>
+        <textarea id="outputArea" readonly style="height:160px;" placeholder="除去結果がここに表示されます ..."></textarea>
+      </div>
+      <div class="footer"> 可視スペースやタブ、改行などは <strong>保持</strong> されます </div>
+    </div>
+    <script>
+      (function() {
+        const inputEl = document.getElementById('inputArea');
+        const outputEl = document.getElementById('outputArea');
+        const charCount = document.getElementById('charCount');
+        const removedCount = document.getElementById('removedCount');
+        const copyIndicator = document.getElementById('copyIndicator');
+        const detectionList = document.getElementById('detectionList');
+        const detectTotalCount = document.getElementById('detectTotalCount');
+
+        function getCharCategory(char) {
+          const code = char.charCodeAt(0);
+          if (char === '\u0020' || char === '\u3000' || char === '\u0009') return null;
+          if (code === 0x0A || code === 0x0D) return null;
+          if (code <= 0x1F) return {
+            name: 'C0制御文字',
+            group: 'control'
+          };
+          if (code === 0x7F) return {
+            name: 'DEL (削除文字)',
+            group: 'control'
+          };
+          if (code >= 0x80 && code <= 0x9F) return {
+            name: 'C1制御文字',
+            group: 'control'
+          };
+          const invisibleRanges = [{
+            start: 0x200B,
+            end: 0x200F,
+            name: 'ゼロ幅・書式制御'
+          }, {
+            start: 0x202A,
+            end: 0x202E,
+            name: '書式制御 (LRO/RLO等)'
+          }, {
+            start: 0x2060,
+            end: 0x206F,
+            name: '不可視演算子等'
+          }, ];
+          for (const range of invisibleRanges) {
+            if (code >= range.start && code <= range.end) {
+              return {
+                name: range.name,
+                group: 'invisible'
+              };
+            }
+          }
+          if (code === 0xFEFF) return {
+            name: 'BOM (バイトオーダーマーク)',
+            group: 'invisible'
+          };
+          if (code === 0x180E) return {
+            name: 'モンゴル語母音分離文字',
+            group: 'invisible'
+          };
+          if (code === 0x00AD) return {
+            name: 'ソフトハイフン',
+            group: 'invisible'
+          };
+          return null;
+        }
+
+        function analyzeAndRemove(text) {
+          if (!text) return {
+            cleaned: '',
+            removed: 0,
+            detected: []
+          };
+          const keepSet = new Set(['\u0020', '\u3000', '\u0009']);
+          let cleaned = '';
+          let removedCount = 0;
+          const detectedMap = new Map();
+          for (let i = 0; i < text.length; i++) {
+            const ch = text[i];
+            const code = ch.charCodeAt(0);
+            if (keepSet.has(ch)) {
+              cleaned += ch;
+              continue;
+            }
+            if (code === 0x0A || code === 0x0D) {
+              cleaned += ch;
+              continue;
+            }
+            const category = getCharCategory(ch);
+            if (category) {
+              const key = `U+${code.toString(16).padStart(4, '0').toUpperCase()}`;
+              if (detectedMap.has(key)) {
+                const entry = detectedMap.get(key);
+                entry.count += 1;
+              } else {
+                detectedMap.set(key, {
+                  char: ch,
+                  name: category.name,
+                  group: category.group,
+                  count: 1,
+                  code: key
+                });
+              }
+              removedCount++;
+              continue;
+            }
+            cleaned += ch;
+          }
+          const detected = Array.from(detectedMap.values()).sort((a, b) => b.count - a.count || a.code.localeCompare(b.code));
+          return {
+            cleaned,
+            removed: removedCount,
+            detected
+          };
+        }
+
+        function updateStats(inputText, removed) {
+          charCount.textContent = inputText.length;
+          removedCount.textContent = `削除: ${removed}`;
+        }
+
+        function renderDetection(detected) {
+          if (!detected || detected.length === 0) {
+            detectionList.innerHTML = `
+						<div class="detection-empty">不可視文字は検出されませんでした。</div>`;
+            detectTotalCount.textContent = '0 種類';
+            return;
+          }
+          let html = ' < div class = "detection-grid" > ';
+          for (const item of detected) {
+            const charDisplay = item.char === ' ' ? '␠' : item.char === '\t' ? '␉' : item.char === '\n' ? '␤' : item.char === '\r' ? '␍' : item.char;
+            const preview = item.group === 'control' ? `[${charDisplay}]` : `"${charDisplay}"`;
+            html += `
+                    
+							<div class="detection-item">
+								<span class="char-preview">${preview}</span>
+								<span>${item.name}</span>
+								<span class="char-code">${item.code}</span>
+								<span class="char-count">${item.count}</span>
+							</div>
+                `;
+          }
+          html += ' < /div>';
+          detectionList.innerHTML = html;
+          detectTotalCount.textContent = `${detected.length} 種類`;
+        }
+
+        function processText() {
+          const raw = inputEl.value;
+          const {
+            cleaned,
+            removed,
+            detected
+          } = analyzeAndRemove(raw);
+          outputEl.value = cleaned;
+          updateStats(raw, removed);
+          renderDetection(detected);
+          copyIndicator.classList.remove('show');
+        }
+        document.getElementById('cleanBtn').addEventListener('click', processText);
+        document.getElementById('clearBtn').addEventListener('click', function() {
+          inputEl.value = '';
+          outputEl.value = '';
+          updateStats('', 0);
+          detectionList.innerHTML = `
+						<div class="detection-empty">まだ実行されていません。「除去を実行」で結果が表示されます。</div>`;
+          detectTotalCount.textContent = '0 種類';
+          copyIndicator.classList.remove('show');
+          inputEl.focus();
+        });
+        document.getElementById('copyBtn').addEventListener('click', function() {
+          const text = outputEl.value;
+          if (!text) {
+            alert('コピーするテキストがありません。');
+            return;
+          }
+          navigator.clipboard.writeText(text).then(() => {
+            copyIndicator.classList.add('show');
+            setTimeout(() => copyIndicator.classList.remove('show'), 2000);
+          }).catch(() => {
+            outputEl.select();
+            document.execCommand('copy');
+            copyIndicator.classList.add('show');
+            setTimeout(() => copyIndicator.classList.remove('show'), 2000);
+          });
+        });
+        inputEl.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            processText();
+          }
+        });
+        inputEl.addEventListener('input', function() {
+          charCount.textContent = inputEl.value.length;
+        });
+        charCount.textContent = '0';
+        removedCount.textContent = '削除: 0';
+        detectionList.innerHTML = `
+						<div class="detection-empty">まだ実行されていません。「除去を実行」で結果が表示されます。</div>`;
+        detectTotalCount.textContent = '0 種類';
+      })();
+    </script>
+  </body>
+</html>
