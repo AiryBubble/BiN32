@@ -254,7 +254,7 @@
         function isValidWebhookUrl(url) {
           if (!url || typeof url !== 'string') return false;
           const trimmed = url.trim();
-          const pattern = /^https:\/\/discord\.com\/api\/webhooks\/[0-9]+\/[a-zA-Z0-9_-]+$/;
+          const pattern = /^https:\/\/(?:ptb\.|canary\.)?discord(?:app)?\.com\/api\/webhooks\/[0-9]+\/[a-zA-Z0-9_-]+$/;
           return pattern.test(trimmed);
         }
 
@@ -285,7 +285,7 @@
           deleteBtn.disabled = !valid || isDeleting;
         }
 
-        function handleCheck() {
+        async function handleCheck() {
           hideResult();
           const raw = webhookInput.value;
           const url = normalizeUrl(raw);
@@ -296,15 +296,53 @@
             return;
           }
           if (!isValidWebhookUrl(url)) {
-            showResult('有効なWebhookではありません', 'ng');
+            showResult('有効な形式のWebhook URLではありません', 'ng');
             hidePreview();
+            currentWebhookUrl = '';
             updateButtons(false);
             return;
           }
-          currentWebhookUrl = url;
-          showPreview(url);
-          showResult('有効なWebhookです。削除を実行できます。', 'ok');
-          updateButtons(true);
+
+          currentWebhookUrl = '';
+          updateButtons(false);
+          checkBtn.disabled = true;
+          deleteBtn.disabled = true;
+          const originalCheckLabel = checkBtn.textContent;
+          checkBtn.innerHTML = '<span class="spinner"></span>確認中...';
+          hidePreview();
+
+          try {
+            const response = await fetch(url, { method: 'GET' });
+            if (response.status === 200) {
+              const data = await response.json().catch(() => null);
+              currentWebhookUrl = url;
+              showPreview(url);
+              const name = data && data.name ? data.name : null;
+              showResult(
+                name
+                  ? 'Webhookの存在を確認しました（名前: ' + name + '）。削除を実行できます。'
+                  : 'Webhookの存在を確認しました。削除を実行できます。',
+                'ok'
+              );
+              updateButtons(true);
+            } else if (response.status === 404) {
+              showResult('このWebhookは存在しません。すでに削除されているか、URLが間違っています。', 'ng');
+              hidePreview();
+              updateButtons(false);
+            } else {
+              const text = await response.text().catch(() => '');
+              showResult('存在確認に失敗しました (HTTP ' + response.status + '): ' + (text || '理由不明'), 'ng');
+              hidePreview();
+              updateButtons(false);
+            }
+          } catch (error) {
+            showResult('ネットワークエラー: ' + (error.message || '不明なエラー') + '。存在確認できませんでした。', 'ng');
+            hidePreview();
+            updateButtons(false);
+          } finally {
+            checkBtn.disabled = false;
+            checkBtn.textContent = originalCheckLabel;
+          }
         }
         async function handleDelete() {
           if (isDeleting) return;
@@ -316,7 +354,7 @@
           if (!confirmed) return;
           isDeleting = true;
           deleteBtn.disabled = true;
-          deleteBtn.innerHTML = ' < span class = "spinner" > < /span>削除中...';
+          deleteBtn.innerHTML = '<span class="spinner"></span>削除中...';
           checkBtn.disabled = true;
           hideResult();
           try {
