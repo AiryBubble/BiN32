@@ -274,6 +274,80 @@
         color: #888;
       }
 
+
+      .risk-banner {
+        margin: 0.5rem 0 1rem;
+        padding: 0.75rem 1rem;
+        border-left: 4px solid #57e;
+        background: #f5f7fc;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        line-height: 1.6;
+      }
+
+      .risk-banner strong {
+        display: block;
+        margin-bottom: 0.15rem;
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 1rem;
+        margin: 0.5rem 0 1rem;
+        font-size: 0.75rem;
+        color: #555;
+      }
+
+      .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+      }
+
+      .legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+
+      .highlight-view {
+        font-family: "BIZ UDPGothic", monospace;
+        font-size: 0.9rem;
+        line-height: 1.8;
+        white-space: pre-wrap;
+        word-break: break-word;
+        background: #fcfdff;
+        border: 1px solid #d0d7e6;
+        border-radius: 8px;
+        padding: 1rem;
+        max-height: 280px;
+        overflow-y: auto;
+        margin-top: 0.4rem;
+        box-sizing: border-box;
+      }
+
+      .highlight-view mark {
+        border-radius: 4px;
+        padding: 0 0.15em;
+        font-weight: 600;
+        cursor: help;
+        border: 1px solid currentColor;
+      }
+
+      .risk-badge {
+        font-size: 0.7rem;
+        padding: 0.05rem 0.55rem;
+        border-radius: 20px;
+        border: 1px solid currentColor;
+      }
+
+      textarea.drag-active {
+        border-color: #57e;
+        box-shadow: 0 0 0 3px rgba(85, 119, 238, 0.15);
+      }
+
       @media (max-width: 600px) {
         body {
           padding: 1rem;
@@ -301,7 +375,10 @@
     <div>
       <div class="toolbar">
         <button id="cleanBtn">除去を実行</button>
+        <button class="secondary" id="sampleBtn">サンプルを試す</button>
         <button class="secondary" id="clearBtn">クリア</button>
+        <button class="secondary" id="fileBtn">ファイルを開く</button>
+        <input type="file" id="fileInput" accept=".txt,.md,.csv,.json,.log,text/*" hidden>
         <span style="flex:1; min-width: 20px;"></span>
         <span style="font-size:0.85rem; color:#555;">
           <span id="charCount">0</span> 文字 </span>
@@ -310,8 +387,17 @@
         <textarea id="inputArea" placeholder="ここに文章やコードを貼り付けてください ..."></textarea>
       </div>
       <div class="stats-row">
-        <span>削除対象:制御文字(可視スペースやタブ、改行などは除く)/ゼロ幅文字/特殊不可視</span>
+        <span>削除対象:制御文字(可視スペースやタブ、改行などは除く)/ゼロ幅文字/双方向制御文字/タグ文字(隠しテキスト)/特殊不可視</span>
         <span class="count" id="removedCount">削除: 0</span>
+      </div>
+      <div class="risk-banner" id="riskBanner" style="display:none;">
+        <strong id="riskTitle"></strong>
+        <span id="riskDesc"></span>
+      </div>
+      <div class="legend" id="legend"></div>
+      <div class="textarea-wrapper" id="highlightWrapper" style="display:none;">
+        <label for="highlightView" style="font-size:0.85rem; color:#555;">元のテキスト上での検出位置(マウスを乗せると詳細が表示されます)</label>
+        <div class="highlight-view" id="highlightView"></div>
       </div>
       <div class="detection-section" id="detectionSection">
         <div class="detection-title"> 検出された不可視文字 <span class="badge-count" id="detectTotalCount">0 種類</span>
@@ -325,6 +411,7 @@
           <label for="outputArea">クリーンな結果</label>
           <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
             <button class="success" id="copyBtn" style="padding: 0.3rem 1rem; font-size:0.8rem;">コピー</button>
+            <button class="secondary" id="downloadBtn" style="padding: 0.3rem 1rem; font-size:0.8rem;">ダウンロード</button>
             <span class="copy-indicator" id="copyIndicator">コピーしました</span>
           </div>
         </div>
@@ -341,162 +428,292 @@
         const copyIndicator = document.getElementById('copyIndicator');
         const detectionList = document.getElementById('detectionList');
         const detectTotalCount = document.getElementById('detectTotalCount');
+        const riskBanner = document.getElementById('riskBanner');
+        const riskTitle = document.getElementById('riskTitle');
+        const riskDesc = document.getElementById('riskDesc');
+        const legendEl = document.getElementById('legend');
+        const highlightWrapper = document.getElementById('highlightWrapper');
+        const highlightView = document.getElementById('highlightView');
+        const fileInput = document.getElementById('fileInput');
 
-        function getCharCategory(char) {
-          const code = char.charCodeAt(0);
-          if (char === '\u0020' || char === '\u3000' || char === '\u0009') return null;
-          if (code === 0x0A || code === 0x0D) return null;
-          if (code <= 0x1F) return {
-            name: 'C0制御文字',
-            group: 'control'
-          };
-          if (code === 0x7F) return {
-            name: 'DEL (削除文字)',
-            group: 'control'
-          };
-          if (code >= 0x80 && code <= 0x9F) return {
-            name: 'C1制御文字',
-            group: 'control'
-          };
-          const invisibleRanges = [{
-            start: 0x200B,
-            end: 0x200F,
-            name: 'ゼロ幅・書式制御'
-          }, {
-            start: 0x202A,
-            end: 0x202E,
-            name: '書式制御 (LRO/RLO等)'
-          }, {
-            start: 0x2060,
-            end: 0x206F,
-            name: '不可視演算子等'
-          }, ];
-          for (const range of invisibleRanges) {
-            if (code >= range.start && code <= range.end) {
-              return {
-                name: range.name,
-                group: 'invisible'
-              };
-            }
+        const RISK_LABEL = { critical: '極高', high: '高', medium: '中', low: '低' };
+        const RISK_RANK = { critical: 4, high: 3, medium: 2, low: 1 };
+
+        const CATEGORIES = [
+          {
+            group: 'tag',
+            name: 'タグ文字(隠しテキスト)',
+            risk: 'critical',
+            color: '#b91c1c',
+            symbol: '‼',
+            test: (cp) => cp === 0xE0000 || cp === 0xE0001 || (cp >= 0xE0020 && cp <= 0xE007E) || cp === 0xE007F
+          },
+          {
+            group: 'bidi',
+            name: '双方向テキスト制御 (Bidi override)',
+            risk: 'high',
+            color: '#c2410c',
+            symbol: '⇄',
+            test: (cp) => (cp >= 0x202A && cp <= 0x202E) || (cp >= 0x2066 && cp <= 0x2069) || cp === 0x200E || cp === 0x200F || cp === 0x061C
+          },
+          {
+            group: 'zerowidth',
+            name: 'ゼロ幅文字',
+            risk: 'medium',
+            color: '#0f766e',
+            symbol: '·',
+            test: (cp) => (cp >= 0x200B && cp <= 0x200D) || (cp >= 0x2060 && cp <= 0x206F)
+          },
+          {
+            group: 'control',
+            name: '制御文字',
+            risk: 'medium',
+            color: '#8a6d00',
+            symbol: '⌁',
+            test: (cp) => cp <= 0x1F || cp === 0x7F || (cp >= 0x80 && cp <= 0x9F)
+          },
+          {
+            group: 'variation',
+            name: '異体字セレクタ',
+            risk: 'low',
+            color: '#1d4ed8',
+            symbol: '◇',
+            test: (cp) => (cp >= 0xFE00 && cp <= 0xFE0F) || (cp >= 0xE0100 && cp <= 0xE01EF)
+          },
+          {
+            group: 'other',
+            name: 'BOM・特殊空白・フィラー',
+            risk: 'low',
+            color: '#57e',
+            symbol: '○',
+            test: (cp) => cp === 0xFEFF || cp === 0x00AD || cp === 0x180E || cp === 0x034F ||
+                          cp === 0x115F || cp === 0x1160 || cp === 0x3164 || cp === 0xFFA0 ||
+                          cp === 0x2800 || cp === 0x00A0
           }
-          if (code === 0xFEFF) return {
-            name: 'BOM (バイトオーダーマーク)',
-            group: 'invisible'
-          };
-          if (code === 0x180E) return {
-            name: 'モンゴル語母音分離文字',
-            group: 'invisible'
-          };
-          if (code === 0x00AD) return {
-            name: 'ソフトハイフン',
-            group: 'invisible'
-          };
+        ];
+
+        const KEEP_CODEPOINTS = new Set([0x20, 0x3000, 0x09, 0x0A, 0x0D]);
+
+        function codePointHex(cp) {
+          return 'U+' + cp.toString(16).toUpperCase().padStart(4, '0');
+        }
+
+        function classify(cp) {
+          if (KEEP_CODEPOINTS.has(cp)) return null;
+          for (const cat of CATEGORIES) {
+            if (cat.test(cp)) return cat;
+          }
           return null;
         }
 
+        function escapeHtml(str) {
+          return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
         function analyzeAndRemove(text) {
-          if (!text) return {
-            cleaned: '',
-            removed: 0,
-            detected: []
-          };
-          const keepSet = new Set(['\u0020', '\u3000', '\u0009']);
-          let cleaned = '';
-          let removedCount = 0;
+          if (!text) return { cleaned: '', removed: 0, detected: [], highlightHtml: '' };
           const detectedMap = new Map();
-          for (let i = 0; i < text.length; i++) {
-            const ch = text[i];
-            const code = ch.charCodeAt(0);
-            if (keepSet.has(ch)) {
-              cleaned += ch;
-              continue;
-            }
-            if (code === 0x0A || code === 0x0D) {
-              cleaned += ch;
-              continue;
-            }
-            const category = getCharCategory(ch);
-            if (category) {
-              const key = `U+${code.toString(16).padStart(4, '0').toUpperCase()}`;
+          let cleaned = '';
+          let highlightHtml = '';
+          let removed = 0;
+
+          for (const ch of text) {
+            const cp = ch.codePointAt(0);
+            const cat = classify(cp);
+            if (cat) {
+              removed++;
+              const key = codePointHex(cp);
               if (detectedMap.has(key)) {
-                const entry = detectedMap.get(key);
-                entry.count += 1;
+                detectedMap.get(key).count++;
               } else {
-                detectedMap.set(key, {
-                  char: ch,
-                  name: category.name,
-                  group: category.group,
-                  count: 1,
-                  code: key
-                });
+                detectedMap.set(key, { cat, count: 1, code: key });
               }
-              removedCount++;
-              continue;
+              highlightHtml += `<mark style="color:${cat.color}; background:${cat.color}22;" title="${escapeHtml(cat.name)} (${key})">${cat.symbol}</mark>`;
+            } else {
+              cleaned += ch;
+              highlightHtml += escapeHtml(ch);
             }
-            cleaned += ch;
           }
-          const detected = Array.from(detectedMap.values()).sort((a, b) => b.count - a.count || a.code.localeCompare(b.code));
-          return {
-            cleaned,
-            removed: removedCount,
-            detected
-          };
+
+          const detected = Array.from(detectedMap.values()).sort((a, b) => {
+            const rankDiff = RISK_RANK[b.cat.risk] - RISK_RANK[a.cat.risk];
+            if (rankDiff !== 0) return rankDiff;
+            return b.count - a.count;
+          });
+
+          return { cleaned, removed, detected, highlightHtml };
         }
 
         function updateStats(inputText, removed) {
-          charCount.textContent = inputText.length;
+          charCount.textContent = Array.from(inputText).length;
           removedCount.textContent = `削除: ${removed}`;
+        }
+
+        function renderRiskBanner(detected) {
+          if (!detected || detected.length === 0) {
+            riskBanner.style.display = '';
+            riskBanner.style.borderLeftColor = '#2a9d6e';
+            riskTitle.textContent = '見えない文字は検出されませんでした';
+            riskDesc.textContent = 'このテキストはクリーンです。';
+            return;
+          }
+          const top = detected[0].cat;
+          riskBanner.style.display = '';
+          riskBanner.style.borderLeftColor = top.color;
+
+          const messages = {
+            critical: ['危険度: 極高 — タグ文字による隠しテキストを検出', 'AIチャットボットへの命令などを人間に見えない形で埋め込む手法に悪用されることがあります。'],
+            high: ['危険度: 高 — 双方向テキスト制御文字を検出', '表示順序を偽装して見た目を騙す攻撃に使われることがあります。'],
+            medium: ['危険度: 中 — ゼロ幅文字・制御文字を検出', '見た目には影響しませんが、意図しない文字が混入しています。'],
+            low: ['危険度: 低 — 目立たない特殊文字を検出', '多くは実害の少ない文字ですが、念のため内容を確認してください。']
+          };
+          const [title, desc] = messages[top.risk];
+          riskTitle.textContent = title;
+          riskDesc.textContent = desc;
+        }
+
+        function renderLegend(detected) {
+          if (!detected || detected.length === 0) {
+            legendEl.innerHTML = '';
+            return;
+          }
+          const seen = new Set();
+          let html = '';
+          for (const item of detected) {
+            if (seen.has(item.cat.group)) continue;
+            seen.add(item.cat.group);
+            html += `<span class="legend-item"><span class="legend-dot" style="background:${item.cat.color}"></span>${escapeHtml(item.cat.name)}</span>`;
+          }
+          legendEl.innerHTML = html;
+        }
+
+        function groupByCategory(detected) {
+          const map = new Map();
+          for (const item of detected) {
+            if (!map.has(item.cat.group)) {
+              map.set(item.cat.group, { cat: item.cat, total: 0, uniqueCount: 0, codes: [] });
+            }
+            const g = map.get(item.cat.group);
+            g.total += item.count;
+            g.uniqueCount++;
+            g.codes.push(`${item.code} × ${item.count}`);
+          }
+          return Array.from(map.values()).sort((a, b) => {
+            const rankDiff = RISK_RANK[b.cat.risk] - RISK_RANK[a.cat.risk];
+            return rankDiff !== 0 ? rankDiff : b.total - a.total;
+          });
         }
 
         function renderDetection(detected) {
           if (!detected || detected.length === 0) {
-            detectionList.innerHTML = `
-						<div class="detection-empty">不可視文字は検出されませんでした。</div>`;
+            detectionList.innerHTML = `<div class="detection-empty">不可視文字は検出されませんでした。</div>`;
             detectTotalCount.textContent = '0 種類';
             return;
           }
-          let html = ' < div class = "detection-grid" > ';
-          for (const item of detected) {
-            const charDisplay = item.char === ' ' ? '␠' : item.char === '\t' ? '␉' : item.char === '\n' ? '␤' : item.char === '\r' ? '␍' : item.char;
-            const preview = item.group === 'control' ? `[${charDisplay}]` : `"${charDisplay}"`;
+          const groups = groupByCategory(detected);
+          let html = '<div class="detection-grid">';
+          for (const g of groups) {
+            const tooltip = g.codes.join(', ');
+            const detail = g.uniqueCount > 1 ? `${g.uniqueCount}種のコード` : g.codes[0];
             html += `
-                    
-							<div class="detection-item">
-								<span class="char-preview">${preview}</span>
-								<span>${item.name}</span>
-								<span class="char-code">${item.code}</span>
-								<span class="char-count">${item.count}</span>
-							</div>
-                `;
+              <div class="detection-item" title="${escapeHtml(tooltip)}">
+                <span class="char-preview" style="color:${g.cat.color}">${g.cat.symbol}</span>
+                <span>${escapeHtml(g.cat.name)}<br><span class="char-code">${escapeHtml(detail)}</span></span>
+                <span class="risk-badge" style="color:${g.cat.color}">${RISK_LABEL[g.cat.risk]}</span>
+                <span class="char-count">${g.total}</span>
+              </div>
+            `;
           }
-          html += ' < /div>';
+          html += '</div>';
           detectionList.innerHTML = html;
-          detectTotalCount.textContent = `${detected.length} 種類`;
+          detectTotalCount.textContent = `${groups.length} 種類`;
         }
 
         function processText() {
           const raw = inputEl.value;
-          const {
-            cleaned,
-            removed,
-            detected
-          } = analyzeAndRemove(raw);
+          const { cleaned, removed, detected, highlightHtml } = analyzeAndRemove(raw);
           outputEl.value = cleaned;
           updateStats(raw, removed);
+          renderRiskBanner(detected);
+          renderLegend(detected);
           renderDetection(detected);
+          highlightWrapper.style.display = raw ? '' : 'none';
+          highlightView.innerHTML = highlightHtml;
           copyIndicator.classList.remove('show');
         }
-        document.getElementById('cleanBtn').addEventListener('click', processText);
-        document.getElementById('clearBtn').addEventListener('click', function() {
+
+        function toHiddenTagText(str) {
+          let out = '';
+          for (const ch of str) out += String.fromCodePoint(0xE0000 + ch.codePointAt(0));
+          return out + String.fromCodePoint(0xE007F);
+        }
+
+        function resetAll() {
           inputEl.value = '';
           outputEl.value = '';
           updateStats('', 0);
           detectionList.innerHTML = `
-						<div class="detection-empty">まだ実行されていません。「除去を実行」で結果が表示されます。</div>`;
+							<div class="detection-empty">まだ実行されていません。「除去を実行」で結果が表示されます。</div>`;
           detectTotalCount.textContent = '0 種類';
+          riskBanner.style.display = 'none';
+          legendEl.innerHTML = '';
+          highlightWrapper.style.display = 'none';
+          highlightView.innerHTML = '';
           copyIndicator.classList.remove('show');
           inputEl.focus();
+        }
+
+        function readFileToInput(file) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            inputEl.value = reader.result;
+            processText();
+          };
+          reader.onerror = () => alert('ファイルの読み込みに失敗しました。');
+          reader.readAsText(file);
+        }
+
+        function downloadOutput() {
+          const text = outputEl.value;
+          if (!text) {
+            alert('ダウンロードするテキストがありません。先に除去を実行してください。');
+            return;
+          }
+          const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'cleaned.txt';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        }
+
+        document.getElementById('cleanBtn').addEventListener('click', processText);
+        document.getElementById('clearBtn').addEventListener('click', resetAll);
+        document.getElementById('downloadBtn').addEventListener('click', downloadOutput);
+
+        document.getElementById('sampleBtn').addEventListener('click', function() {
+          const hidden = toHiddenTagText('HIDDEN INSTRUCTION');
+          const sample =
+            'この文章は一見ふつうに見えます。' +
+            'しかし内部には\u200B\u200Cゼロ幅文字\uFEFF(BOM)や\u202E双方向制御\u202C、' +
+            '見た目には変化のない\u00ADソフトハイフンが混ざっています。' +
+            'さらに、人間には見えない形で「' + hidden + '」という文字列がタグ文字として埋め込まれています。';
+          inputEl.value = sample;
+          processText();
         });
+
+        document.getElementById('fileBtn').addEventListener('click', function() {
+          fileInput.click();
+        });
+
+        fileInput.addEventListener('change', function(e) {
+          if (e.target.files && e.target.files[0]) readFileToInput(e.target.files[0]);
+          fileInput.value = '';
+        });
+
         document.getElementById('copyBtn').addEventListener('click', function() {
           const text = outputEl.value;
           if (!text) {
@@ -513,6 +730,7 @@
             setTimeout(() => copyIndicator.classList.remove('show'), 2000);
           });
         });
+
         inputEl.addEventListener('keydown', function(e) {
           if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
             e.preventDefault();
@@ -520,12 +738,32 @@
           }
         });
         inputEl.addEventListener('input', function() {
-          charCount.textContent = inputEl.value.length;
+          charCount.textContent = Array.from(inputEl.value).length;
         });
+
+        ['dragenter', 'dragover'].forEach(evt => {
+          inputEl.addEventListener(evt, function(e) {
+            e.preventDefault();
+            inputEl.classList.add('drag-active');
+          });
+        });
+        ['dragleave', 'dragend'].forEach(evt => {
+          inputEl.addEventListener(evt, function() {
+            inputEl.classList.remove('drag-active');
+          });
+        });
+        inputEl.addEventListener('drop', function(e) {
+          e.preventDefault();
+          inputEl.classList.remove('drag-active');
+          if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            readFileToInput(e.dataTransfer.files[0]);
+          }
+        });
+
         charCount.textContent = '0';
         removedCount.textContent = '削除: 0';
         detectionList.innerHTML = `
-						<div class="detection-empty">まだ実行されていません。「除去を実行」で結果が表示されます。</div>`;
+							<div class="detection-empty">まだ実行されていません。「除去を実行」で結果が表示されます。</div>`;
         detectTotalCount.textContent = '0 種類';
       })();
     </script>
